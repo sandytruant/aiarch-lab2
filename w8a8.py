@@ -32,7 +32,7 @@ def _w8a16_mm_kernel(
     weight_ptrs = weight_ptr + offs_k[:, None] * stride_wm + offs_n[None, :] * stride_wn
     
     # 初始化累加器
-    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.int32)
+    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.int64)
 
     # 加载scale
     input_scale = tl.load(input_scale_ptr + offs_m)
@@ -51,8 +51,9 @@ def _w8a16_mm_kernel(
         acc += tl.dot(input_block, weight_block)
     
     # 反量化
-    acc = acc.to(tl.float16)
+    acc = tl.cast(acc, tl.float64)
     acc = acc * (input_scale[:, None] * weight_scale[None, :])
+    acc = tl.cast(acc, tl.float16)
 
     # 存储结果
     output_ptrs = output_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on
